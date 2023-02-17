@@ -1,6 +1,7 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Q
 from django.views.generic import TemplateView, DetailView
+from rest_framework.serializers import ModelSerializer
 from rest_framework.viewsets import ModelViewSet
 from django_filters.rest_framework.backends import DjangoFilterBackend
 from rest_framework.exceptions import PermissionDenied
@@ -12,8 +13,14 @@ from rest_framework.permissions import IsAuthenticated
 from chat.models import Order, Message, OrderStatuses, Chat
 
 
+class OrderSerializer(ModelSerializer):
+    class Meta:
+        model = Order
+        fields = '__all__'
+
 class OrderViewSet(ModelViewSet):
     queryset = Order.objects.all()
+    serializer_class = OrderSerializer
     permission_classes = [IsAuthenticated]
     pagination_class = None
 
@@ -25,8 +32,15 @@ class OrderViewSet(ModelViewSet):
         return HttpResponseRedirect(f'/chats/{obj.get_chat(self.request.user).pk}/')
 
 
+class MessageSerializer(ModelSerializer):
+    class Meta:
+        model = Message
+        fields = '__all__'
+
+
 class MessageViewSet(ModelViewSet):
     permission_classes = [IsAuthenticated]
+    serializer_class = MessageSerializer
 
     filterset_fields = ['chat']
     filter_backends = [DjangoFilterBackend]

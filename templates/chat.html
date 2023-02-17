@@ -40,6 +40,7 @@
                 console.log("Connected to chat socket");
             };
             socket.onclose = function () {
+                $('#chat').html('')
                 console.log("Disconnected from chat socket");
             }
             $('#send').click(function() {
