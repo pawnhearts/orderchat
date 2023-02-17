@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}Example{% endblock %}
+
+{% block content %}
+
+    <ul class="rooms">
+        {% for order in orders %}
+           <li><a href="/orders/{{order.pk}}/start_chat/">{{ order.title }}</a></li>
+        {% endfor %}
+    </ul>
+
+    <div id="chats">
+    Your active chats:
+        {% for chat in chats %}
+            <li><a href="/chats/{[chat.pk}}/">{{ chat.order.title }}</a></li>
+        {% endfor %}
+    </div>
+
+{% endblock %}
+
+

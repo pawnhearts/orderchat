@@ -1,0 +1,5 @@
+Django
+djangorestframework
+channels[daphne]
+channels_redis
+django-filter

@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}Example{% endblock %}
+
+{% block content %}
+    <div id="chat">
+
+    </div>
+        <input onkeydown="typing()" id="message"><input type="button" onclick="send()">
+{% endblock %}
+
+{% block extra_body %}
+    <script>
+
+        $(function () {
+            // Correctly decide between ws:// and wss://
+            var ws_scheme = window.location.protocol == "https:" ? "wss" : "ws";
+            var ws_path = ws_scheme + '://' + window.location.host + "/chat/stream/";
+            console.log("Connecting to " + ws_path);
+            var socket = new ReconnectingWebSocket(ws_path);
+
+            // Handle incoming messages
+            socket.onmessage = function (message) {
+                // Decode the JSON
+                console.log("Got websocket message " + message.data);
+                var data = JSON.parse(message.data);
+                console.log(data);
+                $('#chat').append($('<div>' + data + '</div>'));
+
+            }
+
+            // Helpful debugging
+            socket.onopen = function () {
+                console.log("Connected to chat socket");
+                socket.send(JSON.stringify({
+                    "chat": {{ object.pk }},
+                    "command": "join"
+                }));
+            };
+            socket.onclose = function () {
+                console.log("Disconnected from chat socket");
+            }
+                function typing() {
+                    socket.send(JSON.stringify({
+                        "chat": {{ chat.pk }},
+                        "typing": true
+                    }));
+                }
+                function send() {
+                    socket.send(JSON.stringify({
+                        "chat": {{ chat.pk }},
+                        "message": $('message').value
+                    }));
+                }
+        });
+    </script>
+{% endblock %}
