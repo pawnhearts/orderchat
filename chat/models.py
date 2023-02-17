@@ -22,6 +22,8 @@ class MessageTypes(models.IntegerChoices):
     STATUS = 2
     ENTER = 3
     LEAVE = 4
+    TYPING = 5
+    PING = 6
 
 
 class Order(models.Model):
@@ -67,11 +69,14 @@ class Chat(models.Model):
     def __str__(self):
         return self.group_name
 
-    @property
-    def writable(self):
-        return (not self.order.candidate or self.order.candidate == self.candidate) and \
-            not self.rejected and \
-            (self.order.status in (OrderStatuses.PUBLISHED, OrderStatuses.STARTED))
+    def is_writable(self, user):
+        if self.order.status == OrderStatuses.STARTED.value and self.order.candidate != user and self.order.user != user:
+            return False
+        if self.rejected and self.order.user != user:
+            return False
+        if self.order.candidate and self.order.candidate != user and self.order.user != user:
+            return False
+        return True
 
     @property
     def group_name(self):
@@ -107,10 +112,9 @@ class Message(models.Model):
     def to_json(self):
         return {
             "msg_type": self.msg_type,
-            "username": self.user and str(self.user),
+            "username": self.user and self.user.username,
             "timestamp": self.timestamp.isoformat(),
             "message": self.message,
-            "writable": self.user == self.chat.order.user or self.chat.writable,
             "unread": self.unread,
         }
 

@@ -1,11 +1,16 @@
+import logging
+
 from django.conf import settings
 
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
+from django.contrib.auth import get_user_model
+from django.utils import timezone
 
 from .exceptions import ClientError
-from .models import Message
+from .models import Message, MessageTypes
 from .utils import get_chat_or_error
 
+User = get_user_model()
 
 class ChatConsumer(AsyncJsonWebsocketConsumer):
     """
@@ -32,7 +37,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             await self.accept()
         # Store which chats the user has joined on this connection
         self.chats = set()
-        self.join_chat(self.scope['url_route']['kwargs']['pk'])
+        await self.join_chat(int(self.scope['url_route']['kwargs']['pk']))
 
     async def receive_json(self, content):
         """
@@ -48,6 +53,27 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 await self.leave_chat(content["chat"])
             elif command == "send":
                 await self.send_chat(content["chat"], content["message"])
+            elif command == "typing":
+                await self.channel_layer.group_send(
+                    f'chat-{content["chat"]}',
+                    {
+                        "type": "chat.typing",
+                        "chat_id": content['chat'],
+                        "username": self.scope['user'].username,
+                    }
+                )
+            elif command == "ping":
+                now = timezone.now()
+                await User.objects.aupdate(last_login=now)
+                await self.channel_layer.group_send(
+                    f'chat-{content["chat"]}',
+                    {
+                        "type": "chat.ping",
+                        "chat_id": content['chat'],
+                        "username": self.scope['user'].username,
+                        "last_login": now.isoformat()
+                    }
+                )
         except ClientError as e:
             # Catch any errors and send it back
             await self.send_json({"error": e.code})
@@ -68,6 +94,8 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         """
         # The logged-in user is in our scope thanks to the authentication ASGI middleware
         chat = await get_chat_or_error(chat_id, self.scope["user"])
+        async for message in chat.message_set.select_related('user', 'chat').all():
+            await self.send_json(message.to_json())
         await self.channel_layer.group_send(
             chat.group_name,
             {
@@ -76,7 +104,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             }
         )
         # Store that we're in the chat
-        self.chats.add(chat.group_name)
+        self.chats.add(chat.id)
         # Add them to the group so they get chat messages
         await self.channel_layer.group_add(
             chat.group_name,
@@ -88,7 +116,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         )
         # Instruct their client to finish opening the chat
         await self.send_json({
-            "join": str(chat.id),
+            "join": chat.id,
             "title": chat.order.title,
         })
 
@@ -107,7 +135,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             }
         )
         # Remove that we're in the chat
-        self.chats.discard(chat.group_name)
+        self.chats.discard(chat.id)
         # Remove them from the group so they no longer get chat messages
         await self.channel_layer.group_discard(
             chat.group_name,
@@ -131,9 +159,9 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             raise ClientError("CHAT_ACCESS_DENIED")
         # Get the chat and send to the group about it
         chat = await get_chat_or_error(chat_id, self.scope["user"])
-        if not chat.writable:
+        if not chat.is_writable(self.scope['user']):
             raise ClientError("CHAT_ACCESS_DENIED")
-        Message.objects.create(chat=chat, user=self.scope["user"], message=message)
+        await Message.objects.acreate(chat=chat, user=self.scope["user"], message=message)
         await self.channel_layer.group_send(
             chat.group_name,
             {
@@ -154,7 +182,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         # Send a message down to the client
         await self.send_json(
             {
-                "msg_type": settings.MSG_TYPE_ENTER,
+                "msg_type": MessageTypes.ENTER.value,
                 "chat": event["chat_id"],
                 "username": event["username"],
             },
@@ -167,9 +195,28 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         # Send a message down to the client
         await self.send_json(
             {
-                "msg_type": settings.MSG_TYPE_LEAVE,
+                "msg_type": MessageTypes.LEAVE.value,
                 "chat": event["chat_id"],
                 "username": event["username"],
+            },
+        )
+
+    async def chat_typing(self, event):
+        await self.send_json(
+            {
+                "msg_type": MessageTypes.TYPING.value,
+                "chat": event["chat_id"],
+                "username": event["username"],
+            },
+        )
+
+    async def chat_ping(self, event):
+        await self.send_json(
+            {
+                "msg_type": MessageTypes.PING.value,
+                "chat": event["chat_id"],
+                "username": event["username"],
+                "last_login": event["last_login"],
             },
         )
 
@@ -180,7 +227,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         # Send a message down to the client
         await self.send_json(
             {
-                "msg_type": settings.MSG_TYPE_MESSAGE,
+                "msg_type": MessageTypes.MESSAGE.value,
                 "chat": event["chat_id"],
                 "username": event["username"],
                 "message": event["message"],
@@ -191,7 +238,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         await self.channel_layer.group_send(
             order.group_name,
             {
-                "msg_type": settings.MSG_TYPE_STATUS,
+                "msg_type": MessageTypes.STATUS.value,
                 "type": "chat.message",
                 "message": message,
             }
