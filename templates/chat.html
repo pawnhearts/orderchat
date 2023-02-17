@@ -39,8 +39,8 @@
             $('#send').click(function() {
                 socket.send(JSON.stringify({
                     "command": "send",
-                    "chat": {{ chat.pk }},
-                    "message": $('#message').value
+                    "chat": {{ object.id }},
+                    "message": $('#message')[0].value
                 }));
             });
         });
