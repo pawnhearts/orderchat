@@ -4,6 +4,7 @@
 
 {% block content %}
 
+    Заказы:
     <ul class="rooms">
         {% for order in orders %}
            <li><a href="/orders/{{order.pk}}/start_chat/">{{ order.title }}</a></li>

@@ -3,6 +3,7 @@
 {% block title %}Example{% endblock %}
 
 {% block content %}
+    <span id="typing">Typing...</span>
     <div id="chat">
 
     </div>
@@ -26,6 +27,10 @@
                 var data = JSON.parse(message.data);
                 console.log(data);
                 $('#chat').append($('<div>' + JSON.stringify(data) + '</div>'));
+                if(data.msg_type===5) {
+                    $('#typing').show();
+                    setTimeout(function(){$('#typing').hide();}, 1000);
+                }
 
             }
 
@@ -49,6 +54,7 @@
                 "chat": {{ object.id }}
             }));
         });
+        $('#typing').hide();
         });
     </script>
 {% endblock %}
