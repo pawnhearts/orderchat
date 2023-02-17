@@ -1,3 +1,4 @@
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Q
 from django.views.generic import TemplateView, DetailView
 from rest_framework.viewsets import ModelViewSet
@@ -47,14 +48,14 @@ class MessageViewSet(ModelViewSet):
         return Response({'updated': qs.update(unread=False)})
 
 
-class IndexView(TemplateView):
+class IndexView(LoginRequiredMixin, TemplateView):
     template_name = 'index.html'
 
     def get_context_data(self, **kwargs):
         return {'orders': Order.objects.all(), 'chats': Chat.objects.filter(Q(candidate=self.request.user) | Q(order__user=self.request.user))}
 
 
-class ChatView(DetailView):
+class ChatView(LoginRequiredMixin, DetailView):
     template_name = 'chat.html'
 
     def get_queryset(self):

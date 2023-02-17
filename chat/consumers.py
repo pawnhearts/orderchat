@@ -32,6 +32,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             await self.accept()
         # Store which chats the user has joined on this connection
         self.chats = set()
+        self.join_chat(self.scope['url_route']['kwargs']['pk'])
 
     async def receive_json(self, content):
         """
@@ -82,13 +83,13 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             self.channel_name,
         )
         await self.channel_layer.group_add(
-            chat.order_group_name,
+            chat.order.group_name,
             self.channel_name,
         )
         # Instruct their client to finish opening the chat
         await self.send_json({
             "join": str(chat.id),
-            "title": chat.title,
+            "title": chat.order.title,
         })
 
     async def leave_chat(self, chat_id):

@@ -6,16 +6,16 @@
     <div id="chat">
 
     </div>
-        <input onkeydown="typing()" id="message"><input type="button" onclick="send()">
+        <input id="message"><input type="button" id="send" value="Send">
 {% endblock %}
 
 {% block extra_body %}
     <script>
 
-        $(function () {
+    $(document).ready( function () {
             // Correctly decide between ws:// and wss://
             var ws_scheme = window.location.protocol == "https:" ? "wss" : "ws";
-            var ws_path = ws_scheme + '://' + window.location.host + "/chat/stream/";
+            var ws_path = ws_scheme + '://' + window.location.host + "/chat/{{ object.id }}/";
             console.log("Connecting to " + ws_path);
             var socket = new ReconnectingWebSocket(ws_path);
 
@@ -32,26 +32,17 @@
             // Helpful debugging
             socket.onopen = function () {
                 console.log("Connected to chat socket");
-                socket.send(JSON.stringify({
-                    "chat": {{ object.pk }},
-                    "command": "join"
-                }));
             };
             socket.onclose = function () {
                 console.log("Disconnected from chat socket");
             }
-                function typing() {
-                    socket.send(JSON.stringify({
-                        "chat": {{ chat.pk }},
-                        "typing": true
-                    }));
-                }
-                function send() {
-                    socket.send(JSON.stringify({
-                        "chat": {{ chat.pk }},
-                        "message": $('message').value
-                    }));
-                }
+            $('#send').click(function() {
+                socket.send(JSON.stringify({
+                    "command": "send",
+                    "chat": {{ chat.pk }},
+                    "message": $('#message').value
+                }));
+            });
         });
     </script>
 {% endblock %}
