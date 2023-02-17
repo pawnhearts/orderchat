@@ -18,7 +18,7 @@ class OrderStatuses(models.IntegerChoices):
 
 class MessageTypes(models.IntegerChoices):
     MESSAGE = 0
-    WARNING = 1
+    INFO = 1
     STATUS = 2
     ENTER = 3
     LEAVE = 4
@@ -65,9 +65,13 @@ class Chat(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE)
     candidate = models.ForeignKey(User, on_delete=models.CASCADE, related_name='candidate_chats')
     rejected = models.BooleanField(default=False)
+    timestamp = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return self.group_name
+
+    def users(self):
+        return [self.order.user, self.candidate]
 
     def is_writable(self, user):
         if self.order.status == OrderStatuses.STARTED.value and self.order.candidate != user and self.order.user != user:

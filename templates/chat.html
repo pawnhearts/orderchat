@@ -6,7 +6,7 @@
     <pre>Формат json:
     {msg_type:
         MESSAGE = 0 - сообщение
-        WARNING = 1
+        INFO = 1
         STATUS = 2 - изменился статус заказа
         ENTER = 3 - пользователь вошел в чат
         LEAVE = 4 - вышел из чата
@@ -17,6 +17,10 @@
     timestamp: время в iso формате
     username: имя пользователя
     user_id: id пользователя
+
+    У сообщения типа info:
+    users - массив username, user_id, last_login; title - название заказа,
+        timestamp - время создания чата
     </pre>
 
 

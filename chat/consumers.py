@@ -95,6 +95,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         """
         # The logged-in user is in our scope thanks to the authentication ASGI middleware
         chat = await get_chat_or_error(chat_id, self.scope["user"])
+        await self.chat_info(chat)
         async for message in chat.message_set.select_related('user', 'chat').all():
             await self.send_json(message.to_json())
         await self.channel_layer.group_send(
@@ -103,6 +104,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 "type": "chat.join",
                 "username": self.scope["user"].username,
                 "user_id": self.scope["user"].id,
+                "chat_id": chat_id,
             }
         )
         # Store that we're in the chat
@@ -240,6 +242,19 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 "username": event["username"],
                 "user_id": event["user_id"],
                 "message": event["message"],
+            },
+        )
+
+    async def chat_info(self, chat):
+        await self.send_json(
+            {
+                "msg_type": MessageTypes.INFO.value,
+                "chat": chat.id,
+                "title": chat.order.title,
+                "timestamp": chat.timestamp.isoformat(),
+                "users": [
+                    {'username': u.username, 'user_id': u.id, 'last_login': u.last_login.isoformat()}
+                    for u in chat.users()]
             },
         )
 

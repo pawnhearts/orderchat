@@ -25,7 +25,7 @@ async def get_chat_or_error(chat_id, user):
         raise ClientError("USER_HAS_TO_LOGIN")
     # Find the room they requested (by ID)
     try:
-        chat = await Chat.objects.select_related('order', 'order__candidate').aget(pk=chat_id)
+        chat = await Chat.objects.select_related('order', 'order__candidate', 'order__user', 'candidate').aget(pk=chat_id)
     except Chat.DoesNotExist:
         raise ClientError("CHAT_INVALID")
     # Check permissions
