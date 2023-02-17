@@ -3,8 +3,8 @@
 {% block title %}Example{% endblock %}
 
 {% block content %}
-    <p>Формат json:</p>
-    <p>msg_type:<br>
+    <pre>Формат json:
+    {msg_type:
         MESSAGE = 0 - сообщение
         WARNING = 1
         STATUS = 2 - изменился статус заказа
@@ -12,11 +12,12 @@
         LEAVE = 4 - вышел из чата
         TYPING = 5 - что-то печатает
         PING = 6 - какая-то активность(для "был последний раз")
-    </p>
-    <p>message:<br>
-    текст сообщения</p>
-    <p>timestamp:<br>
-        время в iso формате</p>
+
+    message: текст сообщения
+    timestamp: время в iso формате
+    username: имя пользователя
+    user_id: id пользователя
+    </pre>
 
 
     <span id="typing">Typing...</span>

@@ -60,11 +60,12 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                         "type": "chat.typing",
                         "chat_id": content['chat'],
                         "username": self.scope['user'].username,
+                        "user_id": self.scope["user"].id,
                     }
                 )
             elif command == "ping":
                 now = timezone.now()
-                await User.objects.aupdate(last_login=now)
+                await User.objects.filter(id=self.scope['user'].id).aupdate(last_login=now)
                 await self.channel_layer.group_send(
                     f'chat-{content["chat"]}',
                     {
@@ -101,6 +102,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             {
                 "type": "chat.join",
                 "username": self.scope["user"].username,
+                "user_id": self.scope["user"].id,
             }
         )
         # Store that we're in the chat
@@ -132,6 +134,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             {
                 "type": "chat.leave",
                 "username": self.scope["user"].username,
+                "user_id": self.scope["user"].id,
             }
         )
         # Remove that we're in the chat
@@ -168,6 +171,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 "type": "chat.message",
                 "chat_id": chat_id,
                 "username": self.scope["user"].username,
+                "user_id": self.scope['user'].id,
                 "message": message,
             }
         )
@@ -185,6 +189,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 "msg_type": MessageTypes.ENTER.value,
                 "chat": event["chat_id"],
                 "username": event["username"],
+                "user_id": event["user_id"],
             },
         )
 
@@ -198,6 +203,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 "msg_type": MessageTypes.LEAVE.value,
                 "chat": event["chat_id"],
                 "username": event["username"],
+                "user_id": event["user_id"],
             },
         )
 
@@ -207,6 +213,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 "msg_type": MessageTypes.TYPING.value,
                 "chat": event["chat_id"],
                 "username": event["username"],
+                "user_id": event["user_id"],
             },
         )
 
@@ -216,6 +223,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 "msg_type": MessageTypes.PING.value,
                 "chat": event["chat_id"],
                 "username": event["username"],
+                "user_id": event["user_id"],
                 "last_login": event["last_login"],
             },
         )
@@ -230,6 +238,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 "msg_type": MessageTypes.MESSAGE.value,
                 "chat": event["chat_id"],
                 "username": event["username"],
+                "user_id": event["user_id"],
                 "message": event["message"],
             },
         )
