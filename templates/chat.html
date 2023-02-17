@@ -26,10 +26,11 @@
                 console.log("Got websocket message " + message.data);
                 var data = JSON.parse(message.data);
                 console.log(data);
-                $('#chat').append($('<div>' + JSON.stringify(data) + '</div>'));
                 if(data.msg_type===5) {
                     $('#typing').show();
                     setTimeout(function(){$('#typing').hide();}, 1000);
+                }else{
+                    $('#chat').append($('<div>' + JSON.stringify(data) + '</div>'));
                 }
 
             }
